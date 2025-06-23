@@ -43,6 +43,11 @@ class BotLauncher:
         self.disable_ff_var = ctk.BooleanVar()
         self.disable_ff_checkbox = ctk.CTkCheckBox(master, text="Отключить FF", variable=self.disable_ff_var, command=self.toggle_suffix_field)
         self.disable_ff_checkbox.pack(pady=5)
+        
+        self.enable_pvp_var = ctk.BooleanVar()
+        self.enable_pvp_checkbox = ctk.CTkCheckBox(master, text="Включить интелектуальное PVP", variable=self.enable_pvp_var)
+        self.enable_pvp_checkbox.pack(pady=5)
+
 
         # Галочка "Включить ломание сундуков"
         self.breaker_var = ctk.BooleanVar()
@@ -81,6 +86,7 @@ class BotLauncher:
         else:
             self.label_suffix.pack_forget()
             self.entry_suffix.pack_forget()
+    
 
     def toggle_coords_field(self):
         if self.walk_to_goal_var.get():
@@ -90,7 +96,7 @@ class BotLauncher:
             self.label_coords.pack_forget()
             self.entry_coords.pack_forget()
 
-    def run_bot(self, server, ignore_players, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates):
+    def run_bot(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp):
         command = [
             "node", "botn.js", 
             "127.0.0.1:9050",  # Прокси по умолчанию
@@ -101,8 +107,10 @@ class BotLauncher:
             suffix if suffix else "",  # Суффикс
             'true' if breaker_enabled else 'false',  # Включить ломание сундуков
             'true' if walk_to_goal_enabled else 'false', # Включить ходьбу
-            goal_coordinates # Координаты
+            goal_coordinates, # Координаты
+            'true' if enable_pvp else 'false' # Включить PVP
         ]
+        print(f"Команда для запуска бота: {command}")
         process = subprocess.Popen(command)
         self.bot_processes.append(process)
 
@@ -114,14 +122,15 @@ class BotLauncher:
         breaker_enabled = self.breaker_var.get()  # Получаем состояние галочки ломания сундуков
         walk_to_goal_enabled = self.walk_to_goal_var.get()
         goal_coordinates = self.entry_coords.get().strip().replace(' ', '_') if walk_to_goal_enabled else "0_0_0"
+        enable_pvp = self.enable_pvp_var.get()
 
         self.running = True  # Устанавливаем флаг запуска
-        bot_thread = Thread(target=self.run_bots, args=(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates))
+        bot_thread = Thread(target=self.run_bots, args=(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp))
         bot_thread.start()
 
-    def run_bots(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates):
+    def run_bots(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp):
         while self.running:
-            self.run_bot(server, ignore_players, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates)
+            self.run_bot(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp)
             print(f"Запущен бот с прокси: 127.0.0.1:9050")
             change_tor_ip()
             time.sleep(3)  # Ждем 3 секунды перед запуском следующего бота

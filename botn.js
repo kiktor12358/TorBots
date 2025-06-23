@@ -11,12 +11,12 @@ const proxy = process.argv[2]; // Прокси в формате ip:port
 const hostt = process.argv[3]; // Хост сервера
 const portt = parseInt(process.argv[4]); // Порт сервера
 const spamm = process.argv[5]; // Сообщение для спама
-const disableFF = process.argv[6] === 'false'; // Отключить FF
+const disableFF = process.argv[6] === 'true'; // Отключить FF (теперь true значит включено)
 const suffix = process.argv[7] || ''; // Суффикс
-const breaker = process.argv[8] === 'false'; // Функция включения слома блоков
+const breaker = process.argv[8] === 'true'; // Функция включения слома блоков
 const walkToGoalEnabled = process.argv[9] === 'true'; // Функция включения перехода на координаты
 const goalCoordinates = process.argv[10] || ''; // Координаты
-const Mineflayerpvp = process.argv[11] === 'false'; // AI PVP мод
+const Mineflayerpvp = process.argv[11] === 'true'; // AI PVP мод
 
 let pvpInterval = null;
 let isBreaking = false;
@@ -35,11 +35,10 @@ function generateRandomUsername(length) {
     const randomIndex = Math.floor(Math.random() * characters.length);
     result += characters[randomIndex];
   }
-  // Если включен режим "Отключить FF" и есть суффикс, добавляем его к имени
+  // Добавляем суффикс если FF включен
   if (disableFF && suffix) {
     result += suffix;
   }
-  
   return result;
 }
 
@@ -176,7 +175,7 @@ function lockk() {
         return false;
       }
       
-      // Если включен режим "Отключить FF" и есть суффикс
+      // Проверяем суффикс только если FF включен
       if (disableFF && suffix && entity.username) {
         // Игнорируем игроков с указанным суффиксом
         if (entity.username.toLowerCase().endsWith(suffix.toLowerCase())) {
@@ -186,11 +185,9 @@ function lockk() {
       
       return entity !== bot.entity && // Исключаем самого бота
              entity.username !== bot.username
-             //entity.type !== 'player'
     });
     
     if (!entity) return;
-    //console.log(`Атакуем сущность: ${entity.name || entity.type}`);
     const distance = bot.entity.position.distanceTo(entity.position);
     bot.lookAt(entity.position.offset(0, entity.height, 0), true);
     
