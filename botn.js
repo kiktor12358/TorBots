@@ -114,6 +114,7 @@ function createBot() {
           if (e.name.toLowerCase().includes('item')) return false;
           if (e.name.toLowerCase().includes('experience_orb')) return false;
           if (e.name.toLowerCase().includes('arrow')) return false;
+          if (e.name.toLowerCase().includes('armor_stand')) return false;
           if (suffix && e.username && e.username.toLowerCase().endsWith(suffix.toLowerCase())) return false;
           return e !== bot.entity;
         });
@@ -183,13 +184,10 @@ function lockk() {
   pvpInterval = setInterval(() => {
     // Ищем ближайшую сущность, исключая только предметы
     const entity = bot.nearestEntity(entity => {
-      if (entity.name && entity.name.toLowerCase().includes('item')) {
-        return false;
-      }
-      if (entity.name && entity.name.toLowerCase().includes('experience_orb')) {
-        return false;
-      }
-      
+      if (entity.name && entity.name.toLowerCase().includes('item')) {return false;}
+      if (entity.name && entity.name.toLowerCase().includes('experience_orb')) {return false;}
+      if (entity.name && entity.name.toLowerCase().includes('arrow')) {return false;}
+      if (entity.name && entity.name.toLowerCase().includes('armor_stand')) {return false;}
       // Проверяем суффикс только если FF включен
       if (disableFF && suffix && entity.username) {
         // Игнорируем игроков с указанным суффиксом
