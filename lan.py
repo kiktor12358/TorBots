@@ -51,7 +51,7 @@ class BotLauncher:
 
         # Галочка "Включить ломание сундуков"
         self.breaker_var = ctk.BooleanVar()
-        self.breaker_checkbox = ctk.CTkCheckBox(master, text="Включить ломание сундуков", variable=self.breaker_var)
+        self.breaker_checkbox = ctk.CTkCheckBox(master, text="Включить ломание блоков", variable=self.breaker_var)
         self.breaker_checkbox.pack(pady=5)
 
         # Галочка "Прийти по xyz"
@@ -110,7 +110,7 @@ class BotLauncher:
             goal_coordinates, # Координаты
             'true' if enable_pvp else 'false' # Включить PVP
         ]
-        print(f"Команда для запуска бота: {command}")
+        #print(f"Команда для запуска бота: {command}")
         process = subprocess.Popen(command)
         self.bot_processes.append(process)
 
