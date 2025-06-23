@@ -1,9 +1,11 @@
 import subprocess
 import time
-import tkinter as tk
-from tkinter import scrolledtext
+import customtkinter as ctk
 from threading import Thread
 import socket
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
 
 def change_tor_ip():
     try:
@@ -14,6 +16,7 @@ def change_tor_ip():
         s.send("SIGNAL NEWNYM\n".encode())
         s.recv(1024)
         s.close()
+        print("IP address changed successfully.")
     except Exception as e:
         print(f"Error changing IP: {e}")
 
@@ -22,57 +25,55 @@ class BotLauncher:
     def __init__(self, master):
         self.master = master
         master.title("Minecraft Bot Launcher")
+        master.geometry("400x600")
 
         # Поля для ввода IP:Port сервера
-        self.label_server = tk.Label(master, text="Сервер IP:Port (формат: ip:port):")
-        self.label_server.pack()
-
-        self.entry_server = tk.Entry(master)
+        self.label_server = ctk.CTkLabel(master, text="Сервер IP:Port (формат: ip:port):")
+        self.label_server.pack(pady=(20, 0))
+        self.entry_server = ctk.CTkEntry(master)
         self.entry_server.pack(pady=5)
 
         # Поля для игнорируемых игроков
-        self.label_ignore_player = tk.Label(master, text="Игнорируемые игроки (через запятую):")
-        self.label_ignore_player.pack()
-
-        self.entry_ignore_player = tk.Entry(master)
+        self.label_ignore_player = ctk.CTkLabel(master, text="Игнорируемые игроки (через запятую):")
+        self.label_ignore_player.pack(pady=(10, 0))
+        self.entry_ignore_player = ctk.CTkEntry(master)
         self.entry_ignore_player.pack(pady=5)
 
         # Поля для сообщения
-        self.label_message = tk.Label(master, text="Сообщение:")
-        self.label_message.pack()
-
-        self.entry_message = tk.Entry(master)
+        self.label_message = ctk.CTkLabel(master, text="Сообщение:")
+        self.label_message.pack(pady=(10, 0))
+        self.entry_message = ctk.CTkEntry(master)
         self.entry_message.pack(pady=5)
 
         # Галочка "Отключить FF"
-        self.disable_ff_var = tk.BooleanVar()
-        self.disable_ff_checkbox = tk.Checkbutton(master, text="Отключить FF", variable=self.disable_ff_var, command=self.toggle_suffix_field)
+        self.disable_ff_var = ctk.BooleanVar()
+        self.disable_ff_checkbox = ctk.CTkCheckBox(master, text="Отключить FF", variable=self.disable_ff_var, command=self.toggle_suffix_field)
         self.disable_ff_checkbox.pack(pady=5)
 
         # Галочка "Включить ломание сундуков"
-        self.breaker_var = tk.BooleanVar()
-        self.breaker_checkbox = tk.Checkbutton(master, text="Включить ломание сундуков", variable=self.breaker_var)
+        self.breaker_var = ctk.BooleanVar()
+        self.breaker_checkbox = ctk.CTkCheckBox(master, text="Включить ломание сундуков", variable=self.breaker_var)
         self.breaker_checkbox.pack(pady=5)
 
         # Галочка "Прийти по xyz"
-        self.walk_to_goal_var = tk.BooleanVar()
-        self.walk_to_goal_checkbox = tk.Checkbutton(master, text="Прийти по xyz", variable=self.walk_to_goal_var, command=self.toggle_coords_field)
+        self.walk_to_goal_var = ctk.BooleanVar()
+        self.walk_to_goal_checkbox = ctk.CTkCheckBox(master, text="Прийти по xyz", variable=self.walk_to_goal_var, command=self.toggle_coords_field)
         self.walk_to_goal_checkbox.pack(pady=5)
 
         # Поля для суффикса (изначально скрыто)
-        self.label_suffix = tk.Label(master, text="Введите суффикс:")
-        self.entry_suffix = tk.Entry(master)
+        self.label_suffix = ctk.CTkLabel(master, text="Введите суффикс:")
+        self.entry_suffix = ctk.CTkEntry(master)
 
         # Поля для координат (изначально скрыто)
-        self.label_coords = tk.Label(master, text="Введите координаты (x y z):")
-        self.entry_coords = tk.Entry(master)
+        self.label_coords = ctk.CTkLabel(master, text="Введите координаты (x y z):")
+        self.entry_coords = ctk.CTkEntry(master)
 
         # Кнопка для запуска ботов
-        self.start_button = tk.Button(master, text="Запустить ботов", command=self.start_bots)
+        self.start_button = ctk.CTkButton(master, text="Запустить ботов", command=self.start_bots)
         self.start_button.pack(pady=20)
 
         # Кнопка для остановки ботов
-        self.stop_button = tk.Button(master, text="Остановить ботов", command=self.stop_bots)
+        self.stop_button = ctk.CTkButton(master, text="Остановить ботов", command=self.stop_bots)
         self.stop_button.pack(pady=5)
 
         # Хранение процессов ботов
@@ -96,7 +97,6 @@ class BotLauncher:
             self.entry_coords.pack_forget()
 
     def run_bot(self, server, ignore_players, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates):
-        # Используем прокси 127.0.0.1:9050 по умолчанию
         command = [
             "node", "botn.js", 
             "127.0.0.1:9050",  # Прокси по умолчанию
@@ -110,7 +110,6 @@ class BotLauncher:
             'true' if walk_to_goal_enabled else 'false', # Включить ходьбу
             goal_coordinates # Координаты
         ]
-        
         process = subprocess.Popen(command)
         self.bot_processes.append(process)
 
@@ -143,6 +142,6 @@ class BotLauncher:
         print("Все боты остановлены.")
 
 # Создание GUI
-root = tk.Tk()
+root = ctk.CTk()
 app = BotLauncher(root)
 root.mainloop()
