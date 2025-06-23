@@ -5,6 +5,8 @@ const { pathfinder, Movements } = require('mineflayer-pathfinder');
 const { GoalNear } = require('mineflayer-pathfinder').goals
 const armorManager = require("mineflayer-armor-manager");
 const mineflayerPvp = require('mineflayer-pvp').plugin;
+const Vec3 = require('vec3');
+const crafter = require("mineflayer-crafting-util").plugin
 
 // Получаем параметры из командной строки
 const proxy = process.argv[2]; // Прокси в формате ip:port
@@ -17,6 +19,8 @@ const breaker = process.argv[8] === 'true'; // Функция включения
 const walkToGoalEnabled = process.argv[9] === 'true'; // Функция включения перехода на координаты
 const goalCoordinates = process.argv[10] || ''; // Координаты
 const Mineflayerpvp = process.argv[11] === 'true'; // AI PVP мод
+const barrelCarrySword = process.argv[12] === 'true'; // Брать меч из бочки
+
 
 let pvpInterval = null;
 let isBreaking = false;
@@ -79,12 +83,18 @@ function createBot() {
   bot.loadPlugin(pathfinder);
   bot.loadPlugin(armorManager);
   if (Mineflayerpvp) bot.loadPlugin(mineflayerPvp);
-  
+  bot.loadPlugin(crafter)
 
   bot.on('login', async () => {
     console.log(`Бот ${username} на сервере!`);
     bot.chat('/register 789654123 789654123')
     bot.chat('/login 789654123')
+
+    // СНАЧАЛА экипировка из бочки (если включено)
+    if (barrelCarrySword) {
+      await takeItemsFromBarrel(bot);
+    }
+    // Только после экипировки — все остальные действия:
 
     if (walkToGoalEnabled && goalCoordinates) {
       const coords = goalCoordinates.split('_').map(Number);
@@ -97,7 +107,6 @@ function createBot() {
         }
       }
     }
-
     if (Mineflayerpvp) {
       setInterval(() => {
         const entity = bot.nearestEntity(e => {
@@ -109,10 +118,16 @@ function createBot() {
           return e !== bot.entity;
         });
         if (entity) {
-          console.log(`Пытаюсь напасть на: ${entity.username || entity.name} (тип: ${entity.name})`);
           bot.pvp.attack(entity);
         }
       }, 750);
+      // Каждые 5 секунд брать меч в руку
+      setInterval(() => {
+        const sword = bot.inventory.items().find(item => item.name.includes('sword'));
+        if (sword) {
+          bot.equip(sword, 'hand').catch(() => {});
+        }
+      }, 5000);
     } else {
       lockk();
     }
@@ -256,3 +271,69 @@ async function breakerLogic() {
     }
   }, 5000) // Проверяем каждые 5 секунд
 }
+
+// --- Функция для взятия меча и кирки из бочки ---
+async function takeItemsFromBarrel(bot) {
+  try {
+    let barrelBlock = null;
+    // Ждём, пока бочка не появится в зоне видимости
+    for (let i = 0; i < 60; i++) { // 60 попыток, ~2 минуты
+      barrelBlock = bot.findBlock({
+        matching: block => block.name === 'barrel',
+        maxDistance: 64
+      });
+      if (barrelBlock) break;
+      await new Promise(res => setTimeout(res, 2000)); // Ждём 2 секунды
+    }
+    if (barrelBlock) {
+      await bot.pathfinder.goto(new GoalNear(barrelBlock.position.x, barrelBlock.position.y, barrelBlock.position.z, 1));
+      const barrel = await bot.openContainer(barrelBlock);
+      // Ищем первый меч и первую кирку в бочке
+      const swordItem = barrel.containerItems().find(item => item.name.includes('sword'));
+      const pickaxeItem = barrel.containerItems().find(item => item.name.includes('pickaxe'));
+      // Забираем только один меч
+      if (swordItem) {
+        if (bot.inventory.emptySlotCount() === 0) {
+          // (лог заполненности инвентаря удалён)
+        }
+        try {
+          await barrel.withdraw(swordItem.type, null, 1);
+        } catch (e) {}
+        await new Promise(resolve => {
+          const timeout = setTimeout(resolve, 1000);
+          bot.once('windowClose', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        });
+        await bot.waitForTicks(10);
+        let invSword = bot.inventory.items().find(item => item.name.includes('sword'));
+        if (!invSword) invSword = bot.inventory.items().find(item => item.type === swordItem.type);
+        if (invSword) {
+          try {
+            await bot.equip(invSword, 'hand');
+          } catch (e) {}
+        }
+      }
+      // Забираем только одну кирку (если есть)
+      if (pickaxeItem) {
+        if (bot.inventory.emptySlotCount() === 0) {
+          // (лог заполненности инвентаря удалён)
+        }
+        try {
+          await barrel.withdraw(pickaxeItem.type, null, 1);
+        } catch (e) {}
+        await bot.waitForTicks(10);
+        let invPickaxe = bot.inventory.items().find(item => item.name.includes('pickaxe'));
+        if (!invPickaxe) invPickaxe = bot.inventory.items().find(item => item.type === pickaxeItem.type);
+      }
+      await barrel.close();
+    } else {
+      console.log('Бочка не найдена рядом (даже после ожидания).');
+    }
+  } catch (e) {
+    console.log('Ошибка при взятии предметов из бочки:', e.message);
+  }
+}
+// --- Конец функции ---
+

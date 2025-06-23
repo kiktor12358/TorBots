@@ -11,7 +11,7 @@ def change_tor_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(("127.0.0.1", 9051))
-        s.send("AUTHENTICATE \"\"\n".encode()) # Если требуется аутентификация
+        s.send("AUTHENTICATE \"\"\n".encode())
         s.recv(1024)
         s.send("SIGNAL NEWNYM\n".encode())
         s.recv(1024)
@@ -25,7 +25,7 @@ class BotLauncher:
     def __init__(self, master):
         self.master = master
         master.title("Minecraft Bot Launcher")
-        master.geometry("400x600")
+        master.geometry("400x750")
 
         # Поля для ввода IP:Port сервера
         self.label_server = ctk.CTkLabel(master, text="Сервер IP:Port (формат: ip:port):")
@@ -67,6 +67,18 @@ class BotLauncher:
         self.label_coords = ctk.CTkLabel(master, text="Введите координаты (x y z):")
         self.entry_coords = ctk.CTkEntry(master)
 
+        # Галочка "Ограничить количество ботов"
+        self.limit_bots_var = ctk.BooleanVar()
+        self.limit_bots_checkbox = ctk.CTkCheckBox(master, text="Ограничить количество ботов", variable=self.limit_bots_var, command=self.toggle_limit_field)
+        self.limit_bots_checkbox.pack(pady=5)
+        self.label_limit = ctk.CTkLabel(master, text="Максимум ботов:")
+        self.entry_limit = ctk.CTkEntry(master)
+
+        # Галочка "Брать из бочки экипировку"
+        self.barrel_carry_var = ctk.BooleanVar()
+        self.barrel_carry_checkbox = ctk.CTkCheckBox(master, text="Брать из бочки экипировку", variable=self.barrel_carry_var)
+        self.barrel_carry_checkbox.pack(pady=5)
+
         # Кнопка для запуска ботов
         self.start_button = ctk.CTkButton(master, text="Запустить ботов", command=self.start_bots)
         self.start_button.pack(pady=20)
@@ -78,6 +90,9 @@ class BotLauncher:
         # Хранение процессов ботов
         self.bot_processes = []
         self.running = False  # Флаг для управления запуском ботов
+
+        # Добавляем вызов toggle_limit_field в __init__ для корректного отображения
+        self.toggle_limit_field()
 
     def toggle_suffix_field(self):
         if self.disable_ff_var.get():
@@ -96,7 +111,15 @@ class BotLauncher:
             self.label_coords.pack_forget()
             self.entry_coords.pack_forget()
 
-    def run_bot(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp):
+    def toggle_limit_field(self):
+        if self.limit_bots_var.get():
+            self.label_limit.pack()
+            self.entry_limit.pack(pady=5)
+        else:
+            self.label_limit.pack_forget()
+            self.entry_limit.pack_forget()
+
+    def run_bot(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp, barrel_carry):
         command = [
             "node", "botn.js", 
             "127.0.0.1:9050",  # Прокси по умолчанию
@@ -108,11 +131,19 @@ class BotLauncher:
             'true' if breaker_enabled else 'false',  # Включить ломание сундуков
             'true' if walk_to_goal_enabled else 'false', # Включить ходьбу
             goal_coordinates, # Координаты
-            'true' if enable_pvp else 'false' # Включить PVP
+            'true' if enable_pvp else 'false', # Включить PVP
+            'true' if barrel_carry else 'false' # Брать из бочки экипировку
         ]
-        #print(f"Команда для запуска бота: {command}")
         process = subprocess.Popen(command)
         self.bot_processes.append(process)
+        # Добавляем обработчик завершения процесса
+        Thread(target=self.monitor_bot_process, args=(process,)).start()
+
+    def monitor_bot_process(self, process):
+        process.wait()
+        if process in self.bot_processes:
+            self.bot_processes.remove(process)
+            print("Бот завершился.")
 
     def start_bots(self):
         server = self.entry_server.get().strip()  # Получаем сервер
@@ -123,17 +154,34 @@ class BotLauncher:
         walk_to_goal_enabled = self.walk_to_goal_var.get()
         goal_coordinates = self.entry_coords.get().strip().replace(' ', '_') if walk_to_goal_enabled else "0_0_0"
         enable_pvp = self.enable_pvp_var.get()
+        barrel_carry = self.barrel_carry_var.get()
+        limit_enabled = self.limit_bots_var.get()
+        try:
+            max_bots = int(self.entry_limit.get().strip()) if limit_enabled else None
+        except Exception:
+            max_bots = None
 
         self.running = True  # Устанавливаем флаг запуска
-        bot_thread = Thread(target=self.run_bots, args=(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp))
+        bot_thread = Thread(target=self.run_bots_with_limit, args=(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp, barrel_carry, limit_enabled, max_bots))
         bot_thread.start()
 
-    def run_bots(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp):
+    def run_bots_with_limit(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp, barrel_carry, limit_enabled, max_bots):
         while self.running:
-            self.run_bot(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp)
-            print(f"Запущен бот с прокси: 127.0.0.1:9050")
-            change_tor_ip()
-            time.sleep(3)  # Ждем 3 секунды перед запуском следующего бота
+            # Удаляем завершившиеся процессы
+            self.bot_processes = [p for p in self.bot_processes if p.poll() is None]
+            if limit_enabled and max_bots is not None:
+                if len(self.bot_processes) < max_bots:
+                    self.run_bot(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp, barrel_carry)
+                    print(f"Запущен бот с прокси: 127.0.0.1:9050 (всего: {len(self.bot_processes)}/{max_bots})")
+                    change_tor_ip()
+                    time.sleep(3)
+                else:
+                    time.sleep(1)
+            else:
+                self.run_bot(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates, enable_pvp, barrel_carry)
+                print(f"Запущен бот с прокси: 127.0.0.1:9050")
+                change_tor_ip()
+                time.sleep(3)
 
     def stop_bots(self):
         self.running = False  # Сбрасываем флаг запуска
