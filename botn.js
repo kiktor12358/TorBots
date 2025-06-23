@@ -10,14 +10,13 @@ const mineflayerPvp = require('mineflayer-pvp').plugin;
 const proxy = process.argv[2]; // Прокси в формате ip:port
 const hostt = process.argv[3]; // Хост сервера
 const portt = parseInt(process.argv[4]); // Порт сервера
-const ignorePlayers = process.argv[5]; // Игнорируемые игроки
-const spamm = process.argv[6]; // Сообщение для спама
-const disableFF = process.argv[7] === 'false'; // Отключить FF
-const suffix = process.argv[8] || ''; // Суффикс
-const breaker = process.argv[9] === 'false'; // Функция включения слома блоков
-const walkToGoalEnabled = process.argv[10] === 'true'; // Функция включения перехода на координаты
-const goalCoordinates = process.argv[11] || ''; // Координаты
-const Mineflayerpvp = process.argv[12] === 'false'; // AI PVP мод
+const spamm = process.argv[5]; // Сообщение для спама
+const disableFF = process.argv[6] === 'false'; // Отключить FF
+const suffix = process.argv[7] || ''; // Суффикс
+const breaker = process.argv[8] === 'false'; // Функция включения слома блоков
+const walkToGoalEnabled = process.argv[9] === 'true'; // Функция включения перехода на координаты
+const goalCoordinates = process.argv[10] || ''; // Координаты
+const Mineflayerpvp = process.argv[11] === 'false'; // AI PVP мод
 
 let pvpInterval = null;
 let isBreaking = false;

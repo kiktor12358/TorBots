@@ -33,12 +33,6 @@ class BotLauncher:
         self.entry_server = ctk.CTkEntry(master)
         self.entry_server.pack(pady=5)
 
-        # Поля для игнорируемых игроков
-        self.label_ignore_player = ctk.CTkLabel(master, text="Игнорируемые игроки (через запятую):")
-        self.label_ignore_player.pack(pady=(10, 0))
-        self.entry_ignore_player = ctk.CTkEntry(master)
-        self.entry_ignore_player.pack(pady=5)
-
         # Поля для сообщения
         self.label_message = ctk.CTkLabel(master, text="Сообщение:")
         self.label_message.pack(pady=(10, 0))
@@ -102,7 +96,6 @@ class BotLauncher:
             "127.0.0.1:9050",  # Прокси по умолчанию
             server.split(':')[0],  # IP сервера
             server.split(':')[1],  # Порт сервера
-            ignore_players,  # Игнорируемые игроки
             message,  # Сообщение
             'true' if disable_ff else 'false',  # Отключить FF
             suffix if suffix else "",  # Суффикс
@@ -115,7 +108,6 @@ class BotLauncher:
 
     def start_bots(self):
         server = self.entry_server.get().strip()  # Получаем сервер
-        ignore_players = self.entry_ignore_player.get().strip()  # Получаем игнорируемых игроков
         message = self.entry_message.get().strip()  # Получаем сообщение
         disable_ff = self.disable_ff_var.get()  # Получаем состояние галочки
         suffix = self.entry_suffix.get().strip() if self.disable_ff_var.get() else ""  # Получаем суффикс
@@ -124,10 +116,10 @@ class BotLauncher:
         goal_coordinates = self.entry_coords.get().strip().replace(' ', '_') if walk_to_goal_enabled else "0_0_0"
 
         self.running = True  # Устанавливаем флаг запуска
-        bot_thread = Thread(target=self.run_bots, args=(server, ignore_players, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates))
+        bot_thread = Thread(target=self.run_bots, args=(server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates))
         bot_thread.start()
 
-    def run_bots(self, server, ignore_players, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates):
+    def run_bots(self, server, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates):
         while self.running:
             self.run_bot(server, ignore_players, message, disable_ff, suffix, breaker_enabled, walk_to_goal_enabled, goal_coordinates)
             print(f"Запущен бот с прокси: 127.0.0.1:9050")
