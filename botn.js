@@ -215,9 +215,12 @@ function comspam() {
 
 async function breakerLogic() {
   console.log('Breaker logic activated.')
-  const breakBlocks = [
-    'chest', 'trapped_chest', 'crafting_table', 'furnace', 'anvil', 'smoker', 'barrel', 'hopper', 'farmland', 'oak_trapdoor'
+  const breakBlocks = [ //можно добавить свои блоки, но это повлияет на нагрузку ботов
+    'chest'
   ];
+
+  let isBreaking = false;
+
   setInterval(async () => {
     if (isBreaking) return
 
@@ -238,20 +241,18 @@ async function breakerLogic() {
 
     if (foundBlock) {
       isBreaking = true
-      clearInterval(pvpInterval)
+      if (pvpInterval) clearInterval(pvpInterval)
       stopPvp()
-
       try {
         await bot.pathfinder.goto(new GoalNear(foundBlock.position.x, foundBlock.position.y, foundBlock.position.z, 1))
         await bot.dig(foundBlock)
       } catch (err) {
         console.log('Не удалось сломать блок:', err.message)
       }
-
       console.log('Возвращаюсь к PvP.')
       pvpstart()
       lockk()
       isBreaking = false
     }
-  }, 5000) // Check for blocks every 5 seconds
+  }, 5000) // Проверяем каждые 5 секунд
 }
