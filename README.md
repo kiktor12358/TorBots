@@ -64,6 +64,10 @@ ControlPort 9051
 ```
 sudo systemctl restart tor
 ```
+можно также добавить службу tor в автозапуск
+```
+sudo systemctl enable tor
+```
 
 теперь выдаем права start.sh
 ```
